@@ -10,17 +10,14 @@
 ; Hardware: ATMega328P
 ;************************************************************************
 
-.include "M328PDEF.inc"   ; Asegúrate de incluir el archivo correcto
+.include "M328PDEF.inc"		
 
 .org 0x0000
-    RJMP START             ; Salto al inicio del programa
+    RJMP START				; Salto al inicio del programa
 
-.org PCI0addr           // Dirección de la INterrupción PCINT0 (on-change)
-    RJMP CHECK_PUSH  // RutINa de INterrupción 
+.org PCI0addr				; Dirección de la interrupción PCINT0 (on-change)
+    RJMP CHECK_PUSH			; Rutina de Interrupción 
 
-;===========================
-; INICIO DEL PROGRAMA
-;===========================
 START:
     CLI                     ; Deshabilitar interrupciones mientras se configura
     LDI R16, 0x1F
@@ -32,51 +29,51 @@ START:
     LDI R16, 0x03
     OUT PORTB, R16          ; Habilitar pull-ups en PB0 y PB1
 
-	LDI R16, (1 << PCIE0)             // Habilitar PCINT en PORTB
+	LDI R16, (1 << PCIE0)   ;  Habilitar PCINT en PORTB
     STS PCICR, R16
-    LDI R16, (1 << PCINT0) | (1 << PCINT1) // Habilitar Interrupciones en PB0 y PB1
+    LDI R16, (1 << PCINT0) | (1 << PCINT1)		;Habilitar Interrupciones en PB0 y PB1
     STS PCMSK0, R16
 
     SEI                     ; Habilitar interrupciones globales
 
-    LDI R17, 0x00           ; Inicializar contador en 0
+    CLR R17					; Inicializar contador en 0
     RCALL UPDATE_LEDS       ; Actualizar LEDs con valor inicial
 
 MAIN_LOOP:
     RJMP MAIN_LOOP          ; Bucle infinito esperando interrupciones
 
-;===========================
+;==========================================================================
 ; Rutina de interrupción
 CHECK_PUSH:
-    SBIC PINB, 0        ; Si PB0 está en bajo, salta a incrementar
+    SBIC PINB, 0		; Si PB0 está en bajo, salta a incrementar
     RCALL CHECK_INC     ; Llama a la subrutina de incremento si PB0 estaba presionado
     SBIC PINB, 1        ; Si PB1 está en bajo, salta a decrementar
     RCALL CHECK_DEC     ; Llama a la subrutina de decremento si PB1 estaba presionado
-    RETI                ; Retorna de la interrupción
-
-;===========================
+    RETI                ; Regresa a interrupción
+;==========================================================================
 
 CHECK_INC:
-	RCALL DELAY 
+	RCALL DELAY				; Antirrebote
     INC R17                 ; Incrementar el contador
-    ANDI R17, 0x0F          ; Limitar a 4 bits (0-15)
+    ANDI R17, 0x0F          ; Mantiene el contador en 4 bits (0-15)
     RCALL UPDATE_LEDS       ; Actualizar LEDs
 	RET
 
-; DECREMENTAR
 CHECK_DEC:
 	RCALL DELAY
     DEC R17                 ; Decrementar el contador
-    ANDI R17, 0x0F          ; Limitar a 4 bits (0-15)
+    ANDI R17, 0x0F          ; Mantiene el contador en 4 bits (0-15)
     RCALL UPDATE_LEDS       ; Actualizar LEDs
-    RET                    ; Retorno de interrupción
+    RET						; Regresa a la interrupción
 
 ; Atualizar LEDS
 UPDATE_LEDS:
-    MOV R16, R17
+    MOV R16, R17			; Mueve el valor de R17 a R16
     OUT PORTC, R16          ; Mostrar el valor en los LEDs conectados a PC0-PC4
-    RET
+    RET						; Regresa a la interrupción
 
+
+;Antirrebote
 DELAY:
     LDI     R18, 0xFF
 
